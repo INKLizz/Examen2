@@ -33,5 +33,4 @@ public class EmailNodo {
                 + " | leido =" + leido
                 + ']';
     }
-
 }

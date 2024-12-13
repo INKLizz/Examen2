@@ -8,6 +8,7 @@ package examen2_parcial2;
  *
  * @author Laura Sabillon
  */
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -17,6 +18,7 @@ import java.util.NoSuchElementException;
 import javax.swing.DefaultListModel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+
 public class CurrentUser {
 
     public String username;
@@ -60,23 +62,6 @@ public class CurrentUser {
         }
     }
 
-    public void loadFromFile() throws IOException {
-        archivo.seek(0);
-        inicio = null;
-        while (archivo.getFilePointer() < archivo.length()) {
-            long posicion = archivo.readLong();
-            String remitente = archivo.readUTF();
-            String asunto = archivo.readUTF();
-            boolean leido = archivo.readBoolean();
-
-            archivo.readUTF();
-            archivo.readUTF();
-
-            EmailNodo nuevo = new EmailNodo(posicion, remitente, asunto, leido);
-            addNodo(nuevo);
-        }
-    }
-
     public void inbox(JList<String> list) throws IOException {
         if (isEmpty()) {
             JOptionPane.showMessageDialog(null, "No hay correos.");
@@ -99,7 +84,6 @@ public class CurrentUser {
         JOptionPane.showMessageDialog(null, "Total de correos: " + (contador - 1));
     }
 
-
     public long gotEmail(String remitente, String asunto, String contenido, CurrentUser recipient) throws IOException {
         if (recipient == null) {
             throw new IllegalArgumentException("Remitente no puede ser nulo!");
@@ -109,58 +93,97 @@ public class CurrentUser {
         recipientFile.seek(recipientFile.length());
 
         long posicion = recipientFile.getFilePointer();
+        System.out.println("Writing email at position: " + posicion);
+
         recipientFile.writeLong(posicion);
         recipientFile.writeUTF(remitente);
         recipientFile.writeUTF(asunto);
-        recipientFile.writeBoolean(false); 
+        recipientFile.writeBoolean(false);
         recipientFile.writeUTF(contenido);
         recipientFile.writeUTF(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
 
         EmailNodo nuevo = new EmailNodo(posicion, remitente, asunto, false);
         recipient.addNodo(nuevo);
 
-        recipientFile.close(); 
+        recipientFile.close();
 
         return posicion;
     }
-public void readEmail(int posicion) throws IOException {
-    if (posicion < 1) {
-        throw new NoSuchElementException("Posición inválida.");
+
+    public void loadFromFile() throws IOException {
+        archivo.seek(0);
+        inicio = null;
+
+        File file = new File("Mails/" + username + "_emails.eml");
+        if (!file.exists()) {
+            System.out.println("File does not exist.");
+            return;
+        }
+
+        System.out.println("File length: " + archivo.length());
+
+        if (archivo.length() == 0) {
+            System.out.println("The file is empty.");
+            return;
+        }
+
+        while (archivo.getFilePointer() < archivo.length()) {
+            try {
+                long posicion = archivo.readLong();
+                String remitente = archivo.readUTF();
+                String asunto = archivo.readUTF();
+                boolean leido = archivo.readBoolean();
+                String contenido = archivo.readUTF();
+                String fecha = archivo.readUTF();
+
+                System.out.println("Loaded email: " + remitente + " | " + asunto);
+
+                EmailNodo nuevo = new EmailNodo(posicion, remitente, asunto, leido);
+                addNodo(nuevo);
+            } catch (EOFException e) {
+                System.out.println("Reached end of file while loading emails.");
+                break;
+            } catch (IOException e) {
+                System.out.println("IOException while loading emails: " + e.getMessage());
+                break;
+            }
+        }
     }
 
-    EmailNodo temp = inicio;
-    int contador = 1;
-    while (temp != null && contador < posicion) {
-        temp = temp.siguiente;
-        contador++;
-    }
+    public void readEmail(int posicion) throws IOException {
+        if (posicion < 1) {
+            throw new NoSuchElementException("Posición inválida.");
+        }
 
-    if (temp == null) {
-        throw new NoSuchElementException("No existe un email en la posición " + posicion);
-    }
+        EmailNodo temp = inicio;
+        int contador = 1;
+        while (temp != null && contador < posicion) {
+            temp = temp.siguiente;
+            contador++;
+        }
 
-    archivo.seek(temp.posicion);
-    archivo.readLong();  // Skip the long position
-    String remitente = archivo.readUTF();
-    String asunto = archivo.readUTF();
-    boolean leido = archivo.readBoolean();
-    String contenido = archivo.readUTF();
-    String fecha = archivo.readUTF();
+        if (temp == null) {
+            throw new NoSuchElementException("No existe un email en la posición " + posicion);
+        }
 
-    String mensaje = "De: " + remitente
-            + "\nAsunto: " + asunto
-            + "\nContenido: " + contenido
-            + "\nFecha: " + fecha;
-
-    JOptionPane.showMessageDialog(null, mensaje, "Detalles del Email", JOptionPane.INFORMATION_MESSAGE);
-
-    if (!leido) {
-        // Calculate the position of the boolean "leido" field
-        int headerSize = 8 + 2 + remitente.length() + 2 + asunto.length() + 1;  // 8 for long + 2 for each UTF length + string lengths + 1 for boolean
-        archivo.seek(temp.posicion + headerSize);
+        archivo.seek(temp.posicion);
+        archivo.readLong();
+        String remitente = archivo.readUTF();
+        String asunto = archivo.readUTF();
         archivo.writeBoolean(true);
+
+        String contenido = archivo.readUTF();
+        String fecha = archivo.readUTF();
+
+        System.out.println("Reading email: " + remitente + " | " + asunto);
+
+        String mensaje = "De: " + remitente
+                + "\nAsunto: " + asunto
+                + "\nContenido: " + contenido
+                + "\nFecha: " + fecha;
+
+        JOptionPane.showMessageDialog(null, mensaje, "Detalles del Email", JOptionPane.INFORMATION_MESSAGE);
         temp.leido = true;
     }
-}
 
 }
