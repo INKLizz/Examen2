@@ -102,7 +102,7 @@ public class JavaMail {
         if (recipient != null) {
             recipient.gotEmail(remitente, asunto, contenido, recipient);
         } else {
-            throw new IOException("Recipient not found.");
+            throw new IOException("No hay remitente");
         }
     }
 

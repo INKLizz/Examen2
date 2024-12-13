@@ -93,7 +93,6 @@ public class CurrentUser {
         recipientFile.seek(recipientFile.length());
 
         long posicion = recipientFile.getFilePointer();
-        System.out.println("Writing email at position: " + posicion);
 
         recipientFile.writeLong(posicion);
         recipientFile.writeUTF(remitente);
@@ -116,14 +115,11 @@ public class CurrentUser {
 
         File file = new File("Mails/" + username + "_emails.eml");
         if (!file.exists()) {
-            System.out.println("File does not exist.");
+            System.out.println("No existe file.");
             return;
         }
 
-        System.out.println("File length: " + archivo.length());
-
         if (archivo.length() == 0) {
-            System.out.println("The file is empty.");
             return;
         }
 
@@ -136,15 +132,13 @@ public class CurrentUser {
                 String contenido = archivo.readUTF();
                 String fecha = archivo.readUTF();
 
-                System.out.println("Loaded email: " + remitente + " | " + asunto);
-
                 EmailNodo nuevo = new EmailNodo(posicion, remitente, asunto, leido);
                 addNodo(nuevo);
             } catch (EOFException e) {
-                System.out.println("Reached end of file while loading emails.");
+                System.out.println("Fin del archivo.");
                 break;
             } catch (IOException e) {
-                System.out.println("IOException while loading emails: " + e.getMessage());
+                System.out.println("IOException: " + e.getMessage());
                 break;
             }
         }
@@ -174,8 +168,6 @@ public class CurrentUser {
 
         String contenido = archivo.readUTF();
         String fecha = archivo.readUTF();
-
-        System.out.println("Reading email: " + remitente + " | " + asunto);
 
         String mensaje = "De: " + remitente
                 + "\nAsunto: " + asunto
